@@ -1,0 +1,71 @@
+name: openshot-community
+version: '3.1.1'
+summary: OpenShot video editor
+description:  OpenShot Video Editor is a free, open-source, non-linear video editor. It can create and edit videos and movies using many popular video, audio, and image formats. Create videos for YouTube, Flickr, Vimeo, Metacafe, Xbox, and many more common formats!
+
+grade: stable
+confinement: strict
+base: core22
+
+compression: lzo
+architectures:
+  - build-on: amd64
+
+package-repositories:
+ - type: apt
+   ppa: openshot.developers/ppa
+
+environment:
+  PYTHONPATH: $SNAP/usr/lib/python3/dist-packages${PYTHONPATH:+:$PYTHONPATH}
+  QT_PLUGIN_PATH: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET/qt5/plugins:$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET:$SNAP_DESKTOP_RUNTIME/usr/lib/$CRAFT_ARCH_TRIPLET/qt5/plugins:$SNAP_DESKTOP_RUNTIME/usr/lib/$CRAFT_ARCH_TRIPLET${QT_PLUGIN_PATH:+:$QT_PLUGIN_PATH}
+  QML2_IMPORT_PATH: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET/qt5/qml:$SNAP/lib/$CRAFT_ARCH_TRIPLET:$SNAP_DESKTOP_RUNTIME/usr/lib/$CRAFT_ARCH_TRIPLET/qt5/qml:$SNAP_DESKTOP_RUNTIME/lib/$CRAFT_ARCH_TRIPLET${QML2_IMPORT_PATH:+:$QML2_IMPORT_PATH}
+  LD_LIBRARY_PATH: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET:$SNAP/usr/lib:$SNAP/usr/lib/dri${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+  DISABLE_WAYLAND: 1
+  QTWEBENGINEPROCESS_PATH: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET/qt5/libexec/QtWebEngineProcess
+  HOME: $SNAP_USER_COMMON
+
+layout:
+  /usr/share/qt5:
+    bind: $SNAP/usr/share/qt5
+
+parts:
+  openshot:
+    after: [desktop-glib-only]
+    plugin: nil
+    stage-packages:
+      - openshot-qt
+      - python3-openshot
+      - libqt5webenginecore5
+      - libglu1-mesa
+    override-build: |
+      craftctl default
+      sed -i 's|Icon=openshot-qt|Icon=/usr/share/icons/hicolor/scalable/apps/openshot-qt.svg|' ${CRAFT_PART_INSTALL}/usr/share/applications/org.openshot.OpenShot.desktop
+  desktop-glib-only:
+    source: https://github.com/ubuntu/snapcraft-desktop-helpers.git
+    source-subdir: glib-only
+    plugin: make
+    build-packages:
+      - libglib2.0-dev
+    stage-packages:
+      - libglib2.0-bin
+apps:
+  openshot-community:
+    command: usr/bin/openshot-qt
+    desktop: usr/share/applications/org.openshot.OpenShot.desktop
+    common-id: org.openshot.OpenShot
+    extensions: [ gnome ]
+    plugs:
+      - desktop
+      - wayland
+      - home
+      - mount-observe
+      - removable-media
+      - audio-playback
+      - opengl
+      - network-bind
+      - shmem
+plugs:
+  shmem:
+    interface: shared-memory
+    private: true
+
