@@ -23,14 +23,20 @@ environment:
   DISABLE_WAYLAND: 1
   QTWEBENGINEPROCESS_PATH: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET/qt5/libexec/QtWebEngineProcess
   HOME: $SNAP_USER_COMMON
+  ALSA_CONFIG_PATH: $SNAP/usr/share/alsa/alsa.conf
+  ALWAYS_USE_PULSEAUDIO: '1'
 
 layout:
   /usr/share/qt5:
     bind: $SNAP/usr/share/qt5
+  /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/alsa-lib:
+    bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/alsa-lib
+  /usr/share/alsa:
+    bind: $SNAP/usr/share/alsa
 
 parts:
   openshot:
-    after: [desktop-glib-only]
+    after: [alsa-mixin]
     plugin: nil
     stage-packages:
       - openshot-qt
@@ -40,30 +46,54 @@ parts:
     override-build: |
       craftctl default
       sed -i 's|Icon=openshot-qt|Icon=/usr/share/icons/hicolor/scalable/apps/openshot-qt.svg|' ${CRAFT_PART_INSTALL}/usr/share/applications/org.openshot.OpenShot.desktop
-  desktop-glib-only:
-    source: https://github.com/ubuntu/snapcraft-desktop-helpers.git
-    source-subdir: glib-only
-    plugin: make
+  alsa-mixin:
+    plugin: dump
+    source: https://github.com/diddlesnaps/snapcraft-alsa.git
+    source-subdir: snapcraft-assets
     build-packages:
-      - libglib2.0-dev
+      - libasound2-dev
     stage-packages:
-      - libglib2.0-bin
+      - libasound2
+      - libasound2-plugins
+      - yad
+    stage:
+      # restrict to only audio-related files - you need to ensure
+      # that gtk3 is staged for yad to work correctly, to prompt
+      # users to connect the alsa plug or proceed with pulseaudio.
+      #
+      # This helps prevent symbol conflicts in situations where
+      # you're using a non-default library, such as those that the
+      # gnome-3-34 extension for core18 provides.
+      - etc/asound.conf
+      - snap/command-chain/alsa-launch
+      - usr/bin/yad*
+      - usr/lib/$SNAPCRAFT_ARCH_TRIPLET/alsa-lib
+      - usr/lib/$SNAPCRAFT_ARCH_TRIPLET/libasound*
+      - usr/lib/$SNAPCRAFT_ARCH_TRIPLET/libdnsfile*
+      - usr/lib/$SNAPCRAFT_ARCH_TRIPLET/libFLAC*
+      - usr/lib/$SNAPCRAFT_ARCH_TRIPLET/libjack*
+      - usr/lib/$SNAPCRAFT_ARCH_TRIPLET/libpulse*
+      - usr/lib/$SNAPCRAFT_ARCH_TRIPLET/libsamplerate*
+      - usr/lib/$SNAPCRAFT_ARCH_TRIPLET/libspeex*
+      - usr/lib/$SNAPCRAFT_ARCH_TRIPLET/libvorbis*
+      - usr/lib/$SNAPCRAFT_ARCH_TRIPLET/pulseaudio
+      
 apps:
   openshot-community:
+    command-chain: ["snap/command-chain/alsa-launch"]
     command: usr/bin/openshot-qt
     desktop: usr/share/applications/org.openshot.OpenShot.desktop
     common-id: org.openshot.OpenShot
     extensions: [ gnome ]
     plugs:
-      - desktop
-      - wayland
       - home
-      - mount-observe
       - removable-media
       - audio-playback
       - opengl
       - network-bind
       - shmem
+      - alsa
+      
 plugs:
   shmem:
     interface: shared-memory
