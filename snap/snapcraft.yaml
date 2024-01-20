@@ -83,7 +83,6 @@ apps:
     command-chain: ["snap/command-chain/alsa-launch"]
     command: usr/bin/openshot-qt
     desktop: usr/share/applications/org.openshot.OpenShot.desktop
-    common-id: org.openshot.OpenShot
     extensions: [ gnome ]
     plugs:
       - home
